@@ -10,6 +10,7 @@
   @endverbatim
   ******************************************************************************
   * @attention
+  * 20190123 修改了一些注释
   *
   ******************************************************************************  
   */
@@ -18,8 +19,8 @@
 
 /* privte variable */
 //创建消息控制器
-static MSG_Ctrl_TypeDef Msg_Ctrler = {0} ;
-//创建GUI系统对象
+static MSG_Ctrl_TypeDef Msg_Ctrler;
+//创建系统对象
 static mED_OBJ_TypeDef mED_OBJ = { NULL , NULL, 0};
 
 /* privte function */
@@ -27,7 +28,7 @@ static mED_OBJ_TypeDef mED_OBJ = { NULL , NULL, 0};
 
 
 /**
-* @brief  GUI初始化回调 
+* @brief  系统初始化回调 
 * @param  无
 * @retval 无
 */
@@ -37,7 +38,7 @@ __weak void mED_Init_Callback(void)
 }
 
 /**
-  * @brief  GUI默认处理函数
+  * @brief  系统默认处理函数
   * @param  pMsg 消息指针
   * @retval 无
   */ 
@@ -49,7 +50,7 @@ __weak void mED_DfuProc(const MESSAGE *pMsg)
 
 /**
 * @brief  发送消息到消息表 FIFO
-* @param  pMsg:消息指针
+* @param  无
 * @retval 无
 */
 void mED_Init(void)
@@ -57,7 +58,7 @@ void mED_Init(void)
     Msg_Ctrler.Len = 0;
     Msg_Ctrler.Start = 0;
     Msg_Ctrler.End = 0;
-	mED_Init_Callback();
+    mED_Init_Callback();
 }
 
 
@@ -95,7 +96,7 @@ MED_Status_Enum mED_PostMsg(const MESSAGE * pMsg)
 /**
 * @brief  弹出一条消息
 * @param  无
-* @retval MESSAGE
+* @retval 消息指针
 */
 MESSAGE* mED_PopupMsg(void)
 {
@@ -117,8 +118,8 @@ MESSAGE* mED_PopupMsg(void)
 
 
 /**
-* @brief  设置系统对象功能回调
-* @param  无
+* @brief  设置系统功能回调
+* @param  回调函数指针pCb，传入的数据data
 * @retval 无
 */ 
 void mED_Set_OBJ_Func(mED_OBJ_Func_Template  pCb, unsigned int data)

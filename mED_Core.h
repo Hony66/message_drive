@@ -22,18 +22,6 @@
 typedef enum{
     ENTER = 1,
     EXIT,
-    EXCEPT_CHK,
-    SETTING_MODIFY,
-    RF_RXNE,
-    ALARM,
-    FAULT,
-    KEY,
-    BLINK,
-    MREDRAW,
-    SREDRAW,
-    RECORD_REFRESH,
-    TIMER,
-    TIME_UPDATE,
 }MsgEnum;
 
 typedef struct{
@@ -82,6 +70,8 @@ void mED_Init(void);
 void mED_Set_OBJ_Func(mED_OBJ_Func_Template  pCb, unsigned int data);
 void mED_Init_Callback(void);
 void mED_DfuProc(const MESSAGE *pMsg);
+
+
 #endif
 
 
