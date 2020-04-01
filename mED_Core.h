@@ -4,8 +4,8 @@
 #ifndef NULL
     #define NULL 0u
 #endif
-
-#define MSGTABLE_MAX_LEN              20u  //消息表的长度
+//消息表的长度
+#define MSGTABLE_MAX_LEN              32u  //自定义
 
 #if  defined ( __GNUC__ )
   #ifndef __weak
@@ -22,6 +22,17 @@
 typedef enum{
     ENTER = 1,
     EXIT,
+    SETTING_MODIFY,
+    RF_RXNE,
+    ALARM,
+    FAULT_CHECK,
+    KEY,
+    BLINK,
+    MREDRAW,
+    SREDRAW,
+    RECORD_REFRESH,
+    MAINUI_PAGE_SWITCH,
+    TIME_UPDATE,
 }MsgEnum;
 
 typedef struct{
@@ -57,7 +68,7 @@ typedef MsgPrcResult (* mED_OBJ_Func_Template)(const MESSAGE* );
 
 typedef struct{
     mED_OBJ_Func_Template OBJ_Func;
-    mED_OBJ_Func_Template OBJ_Func_Cache;
+    mED_OBJ_Func_Template OBJ_Func_Next;
     unsigned int data;
 }mED_OBJ_TypeDef;
 
@@ -70,8 +81,6 @@ void mED_Init(void);
 void mED_Set_OBJ_Func(mED_OBJ_Func_Template  pCb, unsigned int data);
 void mED_Init_Callback(void);
 void mED_DfuProc(const MESSAGE *pMsg);
-
-
 #endif
 
 

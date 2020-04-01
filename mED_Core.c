@@ -2,25 +2,26 @@
   ******************************************************************************
   * @file    mED_Core.c
   * @author  Hony
-  * @version V1.0
-  * @date    2016-12-05
+  * @version V1.1
+  * @date    2020-01-10
   * @brief   简单的事件驱动
   @verbatim
-  
+  2016-12-05 V1.0
+  创建
+  2020-01-10 V1.1
+  修改ENTER及EXIT消息执行实现
   @endverbatim
   ******************************************************************************
   * @attention
-  * 20190123 修改了一些注释
-  *
+  * mED_PostMsg 和 mED_PopupMsg不能在中断中使用
   ******************************************************************************  
   */
 #include "mED_Core.h"
 
-
 /* privte variable */
 //创建消息控制器
-static MSG_Ctrl_TypeDef Msg_Ctrler;
-//创建系统对象
+static MSG_Ctrl_TypeDef Msg_Ctrler = {0} ;
+//创建GUI系统对象
 static mED_OBJ_TypeDef mED_OBJ = { NULL , NULL, 0};
 
 /* privte function */
@@ -28,7 +29,7 @@ static mED_OBJ_TypeDef mED_OBJ = { NULL , NULL, 0};
 
 
 /**
-* @brief  系统初始化回调 
+* @brief  GUI初始化回调 
 * @param  无
 * @retval 无
 */
@@ -38,7 +39,7 @@ __weak void mED_Init_Callback(void)
 }
 
 /**
-  * @brief  系统默认处理函数
+  * @brief  GUI默认处理函数
   * @param  pMsg 消息指针
   * @retval 无
   */ 
@@ -50,7 +51,7 @@ __weak void mED_DfuProc(const MESSAGE *pMsg)
 
 /**
 * @brief  发送消息到消息表 FIFO
-* @param  无
+* @param  pMsg:消息指针
 * @retval 无
 */
 void mED_Init(void)
@@ -58,7 +59,10 @@ void mED_Init(void)
     Msg_Ctrler.Len = 0;
     Msg_Ctrler.Start = 0;
     Msg_Ctrler.End = 0;
-    mED_Init_Callback();
+    mED_OBJ.data = 0;
+    mED_OBJ.OBJ_Func = NULL;
+    mED_OBJ.OBJ_Func_Next = NULL;
+	mED_Init_Callback();
 }
 
 
@@ -96,9 +100,9 @@ MED_Status_Enum mED_PostMsg(const MESSAGE * pMsg)
 /**
 * @brief  弹出一条消息
 * @param  无
-* @retval 消息指针
+* @retval MESSAGE
 */
-MESSAGE* mED_PopupMsg(void)
+static MESSAGE* mED_PopupMsg(void)
 {
     MESSAGE *ptMsg;
     if(Msg_Ctrler.Len == 0)
@@ -118,68 +122,81 @@ MESSAGE* mED_PopupMsg(void)
 
 
 /**
-* @brief  设置系统功能回调
-* @param  回调函数指针pCb，传入的数据data
-* @retval 无
-*/ 
-void mED_Set_OBJ_Func(mED_OBJ_Func_Template  pCb, unsigned int data)
-{
-    if(pCb == NULL)
-    {
-        return ;
-    }
-    if(mED_OBJ.OBJ_Func == NULL)
-    {
-        MESSAGE ENTER_MSG = {ENTER, 0};
-        ENTER_MSG.data = data;
-        mED_OBJ.OBJ_Func = pCb;
-        mED_OBJ.OBJ_Func(&ENTER_MSG);
-    }
-    else
-    {
-        MESSAGE EXIT_MSG = {EXIT, 0};
-        mED_PostMsg(&EXIT_MSG);
-        mED_OBJ.data = data;
-        mED_OBJ.OBJ_Func_Cache = pCb;
-    }
-}
-
-/**
-* @brief  系统执行函数，需要被周期性调用
+* @brief  设置系统对象功能回调
 * @param  无
 * @retval 无
 */ 
+void mED_Set_OBJ_Func(mED_OBJ_Func_Template pCb, unsigned int data)
+{
+	if (pCb == NULL)
+	{
+		return;
+	}
+    mED_OBJ.OBJ_Func_Next = pCb;
+    mED_OBJ.data = data;
+}
+
+/**
+  * @brief  系统执行函数，需要被周期性调用
+  * @param  无
+  * @retval 无
+  */
 void mED_Exec(void)
 {
-    MESSAGE *ptMsg;
-    ptMsg = mED_PopupMsg();
-    if(ptMsg != NULL)
-    {
+	if (mED_OBJ.OBJ_Func_Next != NULL)
+	{
+		MESSAGE msg;
         if(mED_OBJ.OBJ_Func != NULL)
-        {  
-            if(UNHANDLED == mED_OBJ.OBJ_Func(ptMsg))
+        {
+            msg.MsgId = EXIT;
+            msg.data = NULL;
+            mED_OBJ.OBJ_Func(&msg);
+        }
+		msg.MsgId = ENTER;
+		msg.data = mED_OBJ.data;
+		mED_OBJ.OBJ_Func = mED_OBJ.OBJ_Func_Next;
+		mED_OBJ.OBJ_Func_Next = NULL;
+		mED_OBJ.OBJ_Func(&msg);
+	}
+    MESSAGE *pMsg;
+    while(1)
+    {
+        pMsg = mED_PopupMsg();
+        if (pMsg != NULL)
+        {
+            if (mED_OBJ.OBJ_Func != NULL)
             {
-                mED_DfuProc(ptMsg);
-            }
-            if(ptMsg->MsgId == EXIT)
-            {
-                mED_OBJ.OBJ_Func = mED_OBJ.OBJ_Func_Cache;
-                mED_OBJ.OBJ_Func_Cache = NULL;
-                if(mED_OBJ.OBJ_Func != NULL)
+                if (UNHANDLED == mED_OBJ.OBJ_Func(pMsg))
                 {
-                    MESSAGE ENTER_MSG = {ENTER, 0};
-                    ENTER_MSG.data = mED_OBJ.data;
-                    mED_OBJ.OBJ_Func(&ENTER_MSG);
+                    mED_DfuProc(pMsg);
                 }
+            }
+            else
+            {
+                mED_DfuProc(pMsg);
             }
         }
         else
         {
-            mED_DfuProc(ptMsg);
+            break;
+        }
+        if (mED_OBJ.OBJ_Func_Next != NULL)
+        {
+            MESSAGE msg;
+            if(mED_OBJ.OBJ_Func != NULL)
+            {
+                msg.MsgId = EXIT;
+                msg.data = NULL;
+                mED_OBJ.OBJ_Func(&msg);
+            }
+            msg.MsgId = ENTER;
+            msg.data = mED_OBJ.data;
+            mED_OBJ.OBJ_Func = mED_OBJ.OBJ_Func_Next;
+            mED_OBJ.OBJ_Func_Next = NULL;
+            mED_OBJ.OBJ_Func(&msg);
         }
     }
 }
-
 
 
 
